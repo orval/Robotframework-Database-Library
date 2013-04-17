@@ -13,6 +13,8 @@
 #  limitations under the License.
 
 from robot.api import logger
+from psycopg2.extensions import TransactionRollbackError
+from time import sleep
 
 class Query(object):
     """
@@ -254,6 +256,33 @@ class Query(object):
         finally:
             if cur:
                 self._dbconnection.rollback()
+
+    def execute_sql_serializable(self, sqlStatement):
+        """
+        Executes the SQL statement within a SERIALIZABLE transaction.
+
+        The first tuple of the result is fetched and returned.
+
+        For example:
+        | Execute Sql Serializable | SELECT my_func() |
+        """
+        cur = None
+        while True:
+            self.__set_isolation_level(3)
+            try:
+                cur = self._dbconnection.cursor()
+                self.__execute_sql(cur, sqlStatement)
+            except TransactionRollbackError as e:
+                if "could not serialize access" in e.pgerror:
+                    self._dbconnection.rollback()
+                    sleep(1)
+                    continue
+                else:
+                    raise
+            except:
+                raise
+            self._dbconnection.commit()
+            return cur.fetchone()
 
     def __execute_sql(self, cur, sqlStatement):
         logger.debug("Executing : %s" % sqlStatement)
