@@ -284,6 +284,14 @@ class Query(object):
             self._dbconnection.commit()
             return cur.fetchone()
 
+    def __set_isolation_level(self, level):
+        try:
+            self._dbconnection.set_isolation_level(level)
+        except:
+            logger.debug("Error setting isolation level")
+            self._dbconnection.rollback()
+            raise
+
     def __execute_sql(self, cur, sqlStatement):
         logger.debug("Executing : %s" % sqlStatement)
         return cur.execute(sqlStatement)
