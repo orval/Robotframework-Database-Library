@@ -13,7 +13,7 @@
 #  limitations under the License.
 
 from robot.api import logger
-from psycopg2.extensions import TransactionRollbackError
+from psycopg2 import DatabaseError
 from time import sleep
 
 class Query(object):
@@ -272,7 +272,7 @@ class Query(object):
             try:
                 cur = self._dbconnection.cursor()
                 self.__execute_sql(cur, sqlStatement)
-            except TransactionRollbackError as e:
+            except DatabaseError as e:
                 if "could not serialize access" in e.pgerror:
                     self._dbconnection.rollback()
                     sleep(1)
